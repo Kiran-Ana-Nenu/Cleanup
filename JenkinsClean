@@ -27,5 +27,13 @@ ${paramText}""",
                 cleanWs()      // or deleteDir() if plugin not installed
             }
         }
+    post {
+    success {
+        build job: 'DockerCleanup_Down', 
+              parameters: [string(name: 'CLEANUP_TYPE', value: 'full')],
+              wait: false
+            }
+         }
+
     }
 }
