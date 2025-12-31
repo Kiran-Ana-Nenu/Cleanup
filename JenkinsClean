@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Comma-separated list of users or groups allowed to approve
         APPROVERS = "admins"
     }
 
@@ -24,16 +23,15 @@ ${paramText}""",
         stage('Workspace Cleanup') {
             steps {
                 echo "Cleaning workspace..."
-                cleanWs()      // or deleteDir() if plugin not installed
+                cleanWs()
             }
         }
-    post {
-    success {
-        build job: 'DockerCleanup_Down', 
-              parameters: [string(name: 'CLEANUP_TYPE', value: 'full')],
-              wait: false
-            }
-         }
 
+        stage('Trigger Downstream Job') {
+            steps {
+                echo "Triggering downstream job: DockerCleanup_Down"
+                build job: 'DockerCleanup_Down', wait: true
+            }
+        }
     }
 }
