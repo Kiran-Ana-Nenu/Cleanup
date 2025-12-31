@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Docker Cleanup - Delete Everything') {
+            steps {
+                echo "Cleaning ALL Docker resources..."
+                sh '''
+                    set -e
+
+                    echo "Stopping containers (if any)..."
+                    docker ps -q | xargs -r docker stop
+
+                    echo "Removing containers..."
+                    docker ps -aq | xargs -r docker rm -f
+
+                    echo "Removing unused networks..."
+                    docker network prune -f
+
+                    echo "Removing ALL images (including dangling)..."
+                    docker images -aq | xargs -r docker rmi -f
+                    docker images -f dangling=true -q | xargs -r docker rmi -f
+
+                    echo "Removing ALL volumes..."
+                    docker volume ls -q | xargs -r docker volume rm -f
+
+                    echo "Final prune..."
+                    docker system prune -a -f --volumes || true
+
+                    echo "Docker cleanup completed."
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished."
+        }
+    }
+}

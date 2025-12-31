@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+
+    environment {
+        // Comma-separated list of users or groups allowed to approve
+        APPROVERS = "admins"
+    }
+
+    stages {
+
+        stage('Admin Approval') {
+            steps {
+                script {
+                    def paramText = params.collect { k, v -> "${k} = ${v}" }.join("\n")
+                    input message: """Admin approval required.
+📌 Job Parameters:
+${paramText}""",
+                    ok: 'Approve',
+                    submitter: env.APPROVERS
+                }
+            }
+        }
+
+        stage('Workspace Cleanup') {
+            steps {
+                echo "Cleaning workspace..."
+                cleanWs()      // or deleteDir() if plugin not installed
+            }
+        }
+    }
+}
