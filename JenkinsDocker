@@ -1,34 +1,61 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'PARAM1', defaultValue: 'DefaultValue', description: 'Custom parameter for Docker cleanup')
+        booleanParam(name: 'FLAG', defaultValue: true, description: 'Full cleanup if true, partial cleanup if false')
+    }
+
     stages {
-        stage('Docker Cleanup - Delete Everything') {
+        stage('Docker Cleanup') {
             steps {
-                echo "Cleaning ALL Docker resources..."
-                sh '''
-                    set -e
+                script {
+                    echo "PARAM1: ${params.PARAM1}"
+                    echo "FLAG (full cleanup?): ${params.FLAG}"
 
-                    echo "Stopping containers (if any)..."
-                    docker ps -q | xargs -r docker stop
+                    if (params.FLAG) {
+                        echo "Performing FULL Docker cleanup..."
 
-                    echo "Removing containers..."
-                    docker ps -aq | xargs -r docker rm -f
+                        sh '''
+                            set -e
 
-                    echo "Removing unused networks..."
-                    docker network prune -f
+                            echo "Stopping containers (if any)..."
+                            docker ps -q | xargs -r docker stop
 
-                    echo "Removing ALL images (including dangling)..."
-                    docker images -aq | xargs -r docker rmi -f
-                    docker images -f dangling=true -q | xargs -r docker rmi -f
+                            echo "Removing containers..."
+                            docker ps -aq | xargs -r docker rm -f
 
-                    echo "Removing ALL volumes..."
-                    docker volume ls -q | xargs -r docker volume rm -f
+                            echo "Removing unused networks..."
+                            docker network prune -f
 
-                    echo "Final prune..."
-                    docker system prune -a -f --volumes || true
+                            echo "Removing ALL images (including dangling)..."
+                            docker images -aq | xargs -r docker rmi -f
+                            docker images -f dangling=true -q | xargs -r docker rmi -f
 
-                    echo "Docker cleanup completed."
-                '''
+                            echo "Removing ALL volumes..."
+                            docker volume ls -q | xargs -r docker volume rm -f
+
+                            echo "Final prune..."
+                            docker system prune -a -f --volumes || true
+
+                            echo "Full Docker cleanup completed."
+                        '''
+                    } else {
+                        echo "Performing PARTIAL Docker cleanup (only dangling images and unused networks)..."
+
+                        sh '''
+                            set -e
+
+                            echo "Removing dangling images..."
+                            docker images -f dangling=true -q | xargs -r docker rmi -f
+
+                            echo "Removing unused networks..."
+                            docker network prune -f
+
+                            echo "Docker partial cleanup completed."
+                        '''
+                    }
+                }
             }
         }
     }

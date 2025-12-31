@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         APPROVERS = "admins"
+        DOWNSTREAM_JOB = "DockerCleanup_Down" // Name of downstream job
     }
 
     stages {
@@ -29,8 +30,17 @@ ${paramText}""",
 
         stage('Trigger Downstream Job') {
             steps {
-                echo "Triggering downstream job: DockerCleanup_Down"
-                build job: 'DockerCleanup_Down', wait: true
+                script {
+                    echo "Triggering downstream job: ${env.DOWNSTREAM_JOB}"
+
+                    // Trigger downstream job with parameters
+                    def downstreamBuild = build job: env.DOWNSTREAM_JOB, wait: true, propagate: true, parameters: [
+                        string(name: 'PARAM1', value: 'value1'),
+                        booleanParam(name: 'FLAG', value: true)
+                    ]
+
+                    echo "Downstream job '${env.DOWNSTREAM_JOB}' completed with status: ${downstreamBuild.result}"
+                }
             }
         }
     }
